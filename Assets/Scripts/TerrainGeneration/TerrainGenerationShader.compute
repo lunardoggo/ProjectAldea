@@ -1,0 +1,54 @@
+#pragma kernel CSMain
+
+struct Biome
+{
+    float minTemperature;
+    float maxTemperature;
+    float minHumidity;
+    float maxHumidity;
+    float4 color;
+};
+
+RWStructuredBuffer<float3> vertices;
+RWStructuredBuffer<float4> colors;
+RWStructuredBuffer<int> triangles;
+RWStructuredBuffer<Biome> biomes;
+RWTexture2D<float4> terrainMap;
+uint2 dimensions;
+uint biomeCount;
+float scale;
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    int vert = id.x + dimensions.x * id.y;
+
+    float y = terrainMap[id.xy].x;
+    vertices[vert] = float3(id.x, y * scale, id.y);
+
+    if(id.x < dimensions.x - 1 && id.y < dimensions.y - 1)
+    {
+        int index = 6 * vert;
+
+        triangles[index] = vert;
+        triangles[index + 1] = vert + dimensions.x + 1;
+        triangles[index + 2] = vert + 1;
+        triangles[index + 3] = vert;
+        triangles[index + 4] = vert + dimensions.x;
+        triangles[index + 5] = vert + dimensions.x + 1;
+    }
+
+    for(uint i = 0; i < biomeCount; i++) 
+    {
+        Biome biome = biomes[i];
+        float temperature = terrainMap[id.xy].g;
+        float humidity = terrainMap[id.xy].b;
+
+        if(   temperature <= biome.maxTemperature && temperature >= biome.minTemperature
+        && humidity <= biome.maxHumidity && humidity >= biome.minHumidity)
+        {
+            colors[vert] = biome.color;
+            break;
+        }
+    }
+}
