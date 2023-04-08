@@ -1,4 +1,5 @@
 using ProjectAldea.Scripts.TerrainGeneration;
+using ProjectAldea.Config;
 using UnityEngine;
 using System.Linq;
 using System;
@@ -7,6 +8,9 @@ namespace ProjectAldea.Scripts
 {
     public class TerrainGenerator : MonoBehaviour
     {
+        [SerializeField]
+        private TextAsset biomeConfig;
+
         [SerializeField]
         private ComputeShader meshGenrationShader;
         [SerializeField]
@@ -26,7 +30,24 @@ namespace ProjectAldea.Scripts
         [SerializeField]
         private Octave[] octaves;
         [SerializeField]
-        private BiomePreset[] biomes;
+        private BiomePreset[] legacyBiomes;
+
+        [SerializeField]
+        private BiomeConfig biomes;
+
+        private void OnValidate()
+        {
+            IOptional<BiomeConfig> config = ConfigImporter.LoadBiomeConfig(this.biomeConfig);
+            if (config.HasMessage)
+            {
+                Debug.LogError(config.Message);
+                Debug.LogError(config.VerboseMessage ?? "No Verbose Message");
+            }
+            else
+            {
+                this.biomes = config.Value;
+            }
+        }
 
 
         public void Generate()
@@ -42,8 +63,8 @@ namespace ProjectAldea.Scripts
             //TODO: for some stupid reason the shader cannot write to the buffer if ComputeBufferMode.Dynamic is used
             using ComputeBuffer octaves = new ComputeBuffer(this.octaves.Length, 3 * sizeof(float), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
             octaves.SetData(this.octaves);
-            using ComputeBuffer biomes = new ComputeBuffer(this.biomes.Length, Biome.ByteSize, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
-            biomes.SetData(this.biomes.Select(_biome => _biome.ToBiome()).ToArray());
+            using ComputeBuffer biomes = new ComputeBuffer(this.legacyBiomes.Length, TerrainGeneration.Biome.ByteSize, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+            biomes.SetData(this.legacyBiomes.Select(_biome => _biome.ToBiome()).ToArray());
             using MeshBuffer meshBuffer = this.GetMeshBuffer();
 
             for (int x = 0; x < this.chunkCount.x; x++)
@@ -86,7 +107,7 @@ namespace ProjectAldea.Scripts
             this.meshGenrationShader.SetBuffer(0, "vertices", buffer.Vertices);
             this.meshGenrationShader.SetBuffer(0, "colors", buffer.Colors);
             this.meshGenrationShader.SetFloat("scale", this.scale);
-            this.meshGenrationShader.SetInt("biomeCount", this.biomes.Length);
+            this.meshGenrationShader.SetInt("biomeCount", this.legacyBiomes.Length);
             this.meshGenrationShader.SetBuffer(0, "biomes", biomes);
 
             this.meshGenrationShader.Dispatch(0, this.chunkDimensions.x / 8, this.chunkDimensions.y / 8, 1);

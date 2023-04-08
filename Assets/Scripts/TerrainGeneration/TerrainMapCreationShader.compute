@@ -18,18 +18,19 @@ float2 offset;
 uint seed;
 
 float noise(float2 position, float norm, float2 offset);
-float2 randomOffset(uint seed);
 float snoise01(float2 v);
 
 [numthreads(8, 8, 1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
     //TerrainMap
-    float norm = 0;
-    for (int i = 0; i < octaveCount; i++)
+    float norm = 1;
+    /*for (int i = 0; i < octaveCount; i++)
     {
-        norm += octaves[i].weight;
-    }
+        //norm += pow(octaves[i].weight, octaves[i].power * octaves[i].power * octaves[i].power * octaves[i].power);
+        norm += pow(abs(octaves[i].weight), octaves[i].power) /** 1/octaves[i].scale*/;
+        //norm += octaves[i].weight;
+    //}
     float height = noise(id.xy, norm, offset);
 
     //Biome map
@@ -41,12 +42,12 @@ void CSMain(uint3 id : SV_DispatchThreadID)
         temperature = 1;
         humidity = 1;
     }
-    else if(height > 0.5)
+    else if(height > 0.95)
     {
         temperature = 0;
         humidity = 1;
     }
-    else if(height > 0.3)
+    else if(height > 0.7)
     {
         temperature = 0;
         humidity = 0;
@@ -58,11 +59,6 @@ void CSMain(uint3 id : SV_DispatchThreadID)
     }
 
     terrainMap[id.xy] = float4(height, temperature, humidity, 0);
-}
-
-float2 randomOffset(uint seed)
-{
-    return float2(pow(seed ^ 235413, 5) * 45646.123, pow(seed ^ 7231451, 9) * 1673.6723);
 }
 
 float noise(float2 position, float norm, float2 offset)

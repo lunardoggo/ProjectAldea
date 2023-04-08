@@ -1,11 +1,7 @@
 {
-    "name": "ProjectAldea.Scripts",
-    "rootNamespace": "ProjectAldea.Scripts",
-    "references": [
-        "GUID:d8b63aba1907145bea998dd612889d6b",
-        "GUID:329b4ccd385744985bf3f83cfd77dfe7",
-        "GUID:2f6f3a334043547e08f5ee4c97417716"
-    ],
+    "name": "ProjectAldea",
+    "rootNamespace": "ProjectAldea",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
