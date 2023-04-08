@@ -1,27 +1,54 @@
 using System.Text.RegularExpressions;
-using Unity.Plastic.Newtonsoft.Json;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using UnityEngine;
 using System;
 
 namespace ProjectAldea.Config
 {
-    [CreateAssetMenu(fileName = "BiomeConfig", menuName = "ProjectAldea/BiomeConfig", order = 1)]
-    public class BiomeConfig : ScriptableObject
+    [Serializable]
+    public class BiomeConfig
     {
         [SerializeField]
-        private List<Biome> biomes = new List<Biome>();
+        private Dictionary<Biome, List<Biome>> validNeighbors = new Dictionary<Biome, List<Biome>>();
+        [SerializeField]
+        private Biome[] biomes;
+        [SerializeField]
+        private Biome[] mountainBiomes;
+        [SerializeField]
+        private Biome[] waterBodyBiomes;
 
-        public List<Biome> Biomes { get => this.biomes; }
+        public Biome[] Biomes { get => this.biomes; internal set => this.biomes = value; }
+        public Biome[] MountainBiomes { get => this.mountainBiomes; internal set => this.mountainBiomes = value; }
+        public Biome[] WaterBodyBiomes { get => this.waterBodyBiomes; internal set => this.waterBodyBiomes = value; }
+        internal Dictionary<Biome, List<Biome>> ValidNeighbors { get => this.validNeighbors; }
+
+        internal void SetAdjacent(Biome first, Biome second)
+        {
+            if (!this.validNeighbors.ContainsKey(first))
+            {
+                this.validNeighbors.Add(first, new List<Biome>());
+            }
+            if (!this.validNeighbors.ContainsKey(second))
+            {
+                this.validNeighbors.Add(second, new List<Biome>());
+            }
+
+            if (!this.validNeighbors[first].Contains(second))
+            {
+                this.validNeighbors[first].Add(second);
+            }
+            if (!this.validNeighbors[second].Contains(first))
+            {
+                this.validNeighbors[second].Add(first);
+            }
+        }
     }
 
     [Serializable]
     public class Biome
     {
         //TODO: Resources
-
-        [SerializeField]
-        private List<Biome> validNeighbors = new List<Biome>();
 
         [SerializeField, Range(0.0f, 1.0f)]
         private float temperature;
@@ -36,28 +63,19 @@ namespace ProjectAldea.Config
         [SerializeField]
         private string name;
 
-        public string ColorHex { get => ColorUtility.ToHtmlStringRGB(this.color); internal set => this.SetColor(value); }
-        public float Temperature { get => this.temperature; internal set => this.temperature = value; }
-        public float MaxHeight { get => this.maxHeight; internal set => this.maxHeight = value; }
-        public float MinHeight { get => this.minHeight; internal set => this.minHeight = value; }
-        public float Humidity { get => this.humidity; internal set => this.humidity = value; }
-        public Color Color { get => this.color; internal set => this.color = value; }
-        public string Name { get => this.name; internal set => this.name = value; }
+        public string ColorHex { get => "#" + ColorUtility.ToHtmlStringRGB(this.color); set => this.SetColor(value); }
+        public float Temperature { get => this.temperature; set => this.temperature = value; }
+        public float MaxHeight { get => this.maxHeight; set => this.maxHeight = value; }
+        public float MinHeight { get => this.minHeight; set => this.minHeight = value; }
+        public float Humidity { get => this.humidity; set => this.humidity = value; }
+        public Color Color { get => this.color; set => this.color = value; }
+        public string Name { get => this.name; set => this.name = value; }
 
         private void SetColor(string colorHex)
         {
-            if (!String.IsNullOrEmpty(colorHex) && Regex.IsMatch(colorHex, "#\\d{6}"))
+            if (!String.IsNullOrEmpty(colorHex) && Regex.IsMatch(colorHex, "#[0-9a-fA-F]{6}"))
             {
                 ColorUtility.TryParseHtmlString(colorHex, out this.color);
-                //throw new ArgumentException($"Invalid color hex value \"{colorHex}\" for biome \"{this.name}\"");
-            }
-        }
-
-        internal void SetAdjacent(Biome other)
-        {
-            if (!this.validNeighbors.Contains(other))
-            {
-                this.validNeighbors.Add(other);
             }
         }
 
@@ -65,10 +83,10 @@ namespace ProjectAldea.Config
         {
             return new Biome()
             {
-                Temperature = entry.Temperature,
-                MaxHeight = entry.MaxHeight,
-                MinHeight = entry.MinHeight,
-                Humidity = entry.Humidity,
+                Temperature = Mathf.Clamp01(entry.Temperature),
+                MaxHeight = Mathf.Clamp01(entry.MaxHeight),
+                MinHeight = Mathf.Clamp01(entry.MinHeight),
+                Humidity = Mathf.Clamp01(entry.Humidity),
                 ColorHex = entry.Color,
                 Name = entry.Name
             };

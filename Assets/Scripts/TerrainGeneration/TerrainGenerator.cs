@@ -9,9 +9,6 @@ namespace ProjectAldea.Scripts
     public class TerrainGenerator : MonoBehaviour
     {
         [SerializeField]
-        private TextAsset biomeConfig;
-
-        [SerializeField]
         private ComputeShader meshGenrationShader;
         [SerializeField]
         private ComputeShader terrainMapShader;
@@ -29,24 +26,13 @@ namespace ProjectAldea.Scripts
 
         [SerializeField]
         private Octave[] octaves;
-        [SerializeField]
-        private BiomePreset[] legacyBiomes;
 
         [SerializeField]
-        private BiomeConfig biomes;
+        private BiomeConfig biomeConfig;
 
         private void OnValidate()
         {
-            IOptional<BiomeConfig> config = ConfigImporter.LoadBiomeConfig(this.biomeConfig);
-            if (config.HasMessage)
-            {
-                Debug.LogError(config.Message);
-                Debug.LogError(config.VerboseMessage ?? "No Verbose Message");
-            }
-            else
-            {
-                this.biomes = config.Value;
-            }
+            this.ReloadBiomeConfig();
         }
 
 
@@ -63,8 +49,15 @@ namespace ProjectAldea.Scripts
             //TODO: for some stupid reason the shader cannot write to the buffer if ComputeBufferMode.Dynamic is used
             using ComputeBuffer octaves = new ComputeBuffer(this.octaves.Length, 3 * sizeof(float), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
             octaves.SetData(this.octaves);
-            using ComputeBuffer biomes = new ComputeBuffer(this.legacyBiomes.Length, TerrainGeneration.Biome.ByteSize, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
-            biomes.SetData(this.legacyBiomes.Select(_biome => _biome.ToBiome()).ToArray());
+            using ComputeBuffer biomes = new ComputeBuffer(this.biomeConfig.Biomes.Length, 8 * sizeof(float), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+            biomes.SetData(this.biomeConfig.Biomes.Select(_biome => new B
+            {
+                minTemperature = Mathf.Max(0.0f, _biome.Temperature - 0.1f),
+                maxTemperature = Mathf.Min(1.0f, _biome.Temperature + 0.1f),
+                minHumidity = Mathf.Max(0.0f, _biome.Humidity - 0.1f),
+                maxHumidity = Mathf.Min(1.0f, _biome.Humidity + 0.1f),
+                color = _biome.Color
+            }).ToArray());
             using MeshBuffer meshBuffer = this.GetMeshBuffer();
 
             for (int x = 0; x < this.chunkCount.x; x++)
@@ -107,7 +100,7 @@ namespace ProjectAldea.Scripts
             this.meshGenrationShader.SetBuffer(0, "vertices", buffer.Vertices);
             this.meshGenrationShader.SetBuffer(0, "colors", buffer.Colors);
             this.meshGenrationShader.SetFloat("scale", this.scale);
-            this.meshGenrationShader.SetInt("biomeCount", this.legacyBiomes.Length);
+            this.meshGenrationShader.SetInt("biomeCount", this.biomeConfig.Biomes.Length);
             this.meshGenrationShader.SetBuffer(0, "biomes", biomes);
 
             this.meshGenrationShader.Dispatch(0, this.chunkDimensions.x / 8, this.chunkDimensions.y / 8, 1);
@@ -171,6 +164,34 @@ namespace ProjectAldea.Scripts
                 this.Triangles.Dispose();
                 this.Vertices.Dispose();
                 this.Colors.Dispose();
+            }
+        }
+
+        private struct B
+        {
+            public float minTemperature;
+            public float maxTemperature;
+            public float minHumidity;
+            public float maxHumidity;
+            public Color color;
+        }
+
+        public BiomeConfig BiomeConfig { get => this.biomeConfig; }
+
+        public void ReloadBiomeConfig(bool force = false)
+        {
+            if (this.biomeConfig is null || force)
+            {
+                IOptional<BiomeConfig> config = ConfigImporter.LoadBiomeConfig();
+                if (config.HasMessage)
+                {
+                    Debug.LogError(config.Message);
+                    Debug.LogError(config.VerboseMessage ?? "No Verbose Message");
+                }
+                else
+                {
+                    this.biomeConfig = config.Value;
+                }
             }
         }
     }
