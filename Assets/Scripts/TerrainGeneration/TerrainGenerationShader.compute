@@ -6,6 +6,8 @@ struct Biome
     float maxTemperature;
     float minHumidity;
     float maxHumidity;
+    float minHeight;
+    float maxHeight;
     float4 color;
 };
 
@@ -16,14 +18,18 @@ RWStructuredBuffer<Biome> biomes;
 RWTexture2D<float4> terrainMap;
 uint2 dimensions;
 uint biomeCount;
+float2 offset;
 float scale;
 
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     int vert = id.x + dimensions.x * id.y;
+    uint2 pos = id.xy + offset;
 
-    float y = terrainMap[id.xy].x;
+    float y = terrainMap[pos].x;
+    y = 3.5 * pow(y - 0.47, 3) + 0.15 * sin(y - 0.47) + 0.4; //make flat areas more pronounced
+
     vertices[vert] = float3(id.x, y * scale, id.y);
 
     if(id.x < dimensions.x - 1 && id.y < dimensions.y - 1)
@@ -38,17 +44,27 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         triangles[index + 5] = vert + dimensions.x + 1;
     }
 
-    for(uint i = 0; i < biomeCount; i++) 
+    if(biomeCount > 0)
     {
-        Biome biome = biomes[i];
-        float temperature = terrainMap[id.xy].g;
-        float humidity = terrainMap[id.xy].b;
+        float elevation = terrainMap[pos].x;
+        float temperature = terrainMap[pos].y;
+        float humidity = terrainMap[pos].z;
 
-        if(   temperature <= biome.maxTemperature && temperature >= biome.minTemperature
-        && humidity <= biome.maxHumidity && humidity >= biome.minHumidity)
+        for(uint i = 0; i < biomeCount; i++)
         {
-            colors[vert] = biome.color;
-            break;
+            Biome biome = biomes[i];
+
+            if(   biome.minHeight <= elevation && biome.maxHeight >= elevation
+               && biome.minTemperature <= temperature && biome.maxTemperature >= temperature
+               && biome.minHumidity <= humidity && biome.maxHumidity >= humidity)
+             {
+                colors[vert] = biome.color;
+                break;
+             }
         }
+    }
+    else
+    {
+        colors[vert] = float4(terrainMap[id.xy + offset].y, 0, terrainMap[id.xy + offset].z, 0);
     }
 }

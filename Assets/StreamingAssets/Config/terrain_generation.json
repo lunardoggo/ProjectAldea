@@ -1,0 +1,149 @@
+﻿{
+  "heightMap": {
+    "persistance": 0.5,
+    "lacunarity": 2.0,
+    "octaves": 5,
+    "scale": 5.0
+  },
+  "biomes": [
+    {
+      "color": "#352C2C",
+      "minTemperature": 0.0,
+      "maxTemperature": 1.0,
+      "maxHeight": 1.0,
+      "minHeight": 0.65,
+      "minHumidity": 0.0,
+      "maxHumidity": 1.0,
+      "name": "mountains"
+    },
+    {
+      "color": "#D0D0D0",
+      "minTemperature": 0.0,
+      "maxTemperature": 1.0,
+      "maxHeight": 1.0,
+      "minHeight": 0.9,
+      "minHumidity": 0.0,
+      "maxHumidity": 1.0,
+      "name": "snowy_peaks"
+    },
+    {
+      "color": "#2A9D1C",
+      "minTemperature": 0.1,
+      "maxTemperature": 0.7,
+      "maxHeight": 0.8,
+      "minHeight": 0.3,
+      "minHumidity": 0.1,
+      "maxHumidity": 0.4,
+      "name": "grass_land"
+    },
+    {
+      "color": "#ADAD32",
+      "minTemperature": 0.7,
+      "maxTemperature": 1.0,
+      "maxHeight": 0.8,
+      "minHeight": 0.3,
+      "minHumidity": 0.1,
+      "maxHumidity": 0.8,
+      "name": "savanna"
+    },
+    {
+      "color": "#765029",
+      "minTemperature": 0.1,
+      "maxTemperature": 0.7,
+      "maxHeight": 0.8,
+      "minHeight": 0.3,
+      "minHumidity": 0.0,
+      "maxHumidity": 0.1,
+      "name": "scree_desert"
+    },
+    {
+      "color": "#ED9015",
+      "minTemperature": 0.6,
+      "maxTemperature": 1.0,
+      "maxHeight": 0.5,
+      "minHeight": 0.3,
+      "minHumidity": 0.0,
+      "maxHumidity": 0.1,
+      "name": "sand_desert"
+    },
+    {
+      "color": "#FFFFFF",
+      "minTemperature": 0.0,
+      "maxTemperature": 0.1,
+      "maxHeight": 0.8,
+      "minHeight": 0.3,
+      "minHumidity": 0.0,
+      "maxHumidity": 1.0,
+      "name": "tundra"
+    },
+    {
+      "color": "#00FFBB",
+      "minTemperature": 0.05,
+      "maxTemperature": 0.2,
+      "maxHeight": 0.6,
+      "minHeight": 0.3,
+      "minHumidity": 0.4,
+      "maxHumidity": 1.0,
+      "name": "swamp"
+    },
+    {
+      "color": "#00D400",
+      "minTemperature": 0.2,
+      "maxTemperature": 1.0,
+      "maxHeight": 0.65,
+      "minHeight": 0.3,
+      "minHumidity": 0.4,
+      "maxHumidity": 1.0,
+      "name": "rainforest"
+    },
+    {
+      "color": "#F0D316",
+      "minTemperature": 0.0,
+      "maxTemperature": 1.0,
+      "maxHeight": 0.4,
+      "minHeight": 0.3,
+      "minHumidity": 0.0,
+      "maxHumidity": 1.0,
+      "name": "beach"
+    },
+    {
+      "color": "#3153D2",
+      "minTemperature": 0.0,
+      "maxTemperature": 1.0,
+      "maxHeight": 0.3,
+      "minHeight": 0.0,
+      "minHumidity": 0.0,
+      "maxHumidity": 1.0,
+      "name": "ocean"
+    },
+    {
+      "color": "#2583E0",
+      "minTemperature": 0.0,
+      "maxTemperature": 1.0,
+      "maxHeight": 0.7,
+      "minHeight": 0.4,
+      "minHumidity": 0.0,
+      "maxHumidity": 1.0,
+      "name": "lake"
+    },
+    {
+      "color": "#4DC0FF",
+      "minTemperature": 0.0,
+      "maxTemperature": 1.0,
+      "maxHeight": 0.85,
+      "minHeight": 0.3,
+      "minHumidity": 0.0,
+      "maxHumidity": 1.0,
+      "name": "river"
+    }
+  ],
+  "mountainBiomes": [
+    "mountains",
+    "snowy_peaks"
+  ],
+  "waterBodyBiomes": [
+    "ocean",
+    "lake",
+    "river"
+  ]
+}

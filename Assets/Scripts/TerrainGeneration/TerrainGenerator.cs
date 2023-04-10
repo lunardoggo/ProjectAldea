@@ -9,6 +9,11 @@ namespace ProjectAldea.Scripts
     public class TerrainGenerator : MonoBehaviour
     {
         [SerializeField]
+        private GameObject debugTarget;
+        [SerializeField]
+        private bool drawTerrainMap;
+
+        [SerializeField]
         private ComputeShader meshGenrationShader;
         [SerializeField]
         private ComputeShader terrainMapShader;
@@ -17,91 +22,116 @@ namespace ProjectAldea.Scripts
         [SerializeField]
         private float scale;
         [SerializeField]
-        private Vector2Int chunkDimensions = new Vector2Int(128, 128);
-        [SerializeField]
-        private Vector2Int chunkCount = new Vector2Int(3, 3);
+        private Vector2Int chunkDimensions = new Vector2Int(256, 256);
 
         [SerializeField]
-        private MeshRenderer chunkPrefab;
+        private MeshFilter chunkPrefab;
+        [SerializeField]
+        private MapSettings currentSettings;
 
         [SerializeField]
-        private Octave[] octaves;
-
-        [SerializeField]
-        private BiomeConfig biomeConfig;
+        private TerrainGeneratorConfig terrainConfig;
 
         private void OnValidate()
         {
             this.ReloadBiomeConfig();
         }
 
-
         public void Generate()
         {
-            this.seed = UnityEngine.Random.Range(byte.MaxValue * 2, byte.MaxValue * 32);
+            this.seed = UnityEngine.Random.Range(0, 100000);
 
-            for (int i = 0; i < this.transform.childCount; i++)
+            this.Regenerate();
+        }
+
+        public void Regenerate()
+        {
+            this.ClearChunks();
+
+            Vector2Int resolution = this.currentSettings.MapSize;
+            Vector2Int chunkCount = new Vector2Int(resolution.x / this.chunkDimensions.x, resolution.y / this.chunkDimensions.y);
+
+            System.Random rng = new System.Random(this.seed + this.currentSettings.GetHashCode() % 10067);
+            RenderTexture terrainMap = new RenderTexture(resolution.x, resolution.y, 24);
+            terrainMap.enableRandomWrite = true;
+            terrainMap.Create();
+
+            this.UpdateTerrainMap(terrainMap, resolution, rng);
+
+            this.debugTarget.GetComponent<MeshRenderer>().sharedMaterial.mainTexture = terrainMap;
+
+            this.SpawnChunks(terrainMap, chunkCount);
+        }
+
+        private void ClearChunks()
+        {
+            for(int i = this.transform.childCount - 1; i >= 0; i--)
             {
-                Transform t = this.transform.GetChild(i);
-                GameObject.Destroy(t.gameObject);
+                #if UNITY_EDITOR
+                    GameObject.DestroyImmediate(this.transform.GetChild(i).gameObject, true);
+                #else
+                    GameObject.Destroy(this.transform.GetChild(i).gameObject);
+                #endif
             }
+        }
 
-            //TODO: for some stupid reason the shader cannot write to the buffer if ComputeBufferMode.Dynamic is used
-            using ComputeBuffer octaves = new ComputeBuffer(this.octaves.Length, 3 * sizeof(float), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
-            octaves.SetData(this.octaves);
-            using ComputeBuffer biomes = new ComputeBuffer(this.biomeConfig.Biomes.Length, 8 * sizeof(float), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
-            biomes.SetData(this.biomeConfig.Biomes.Select(_biome => new B
-            {
-                minTemperature = Mathf.Max(0.0f, _biome.Temperature - 0.1f),
-                maxTemperature = Mathf.Min(1.0f, _biome.Temperature + 0.1f),
-                minHumidity = Mathf.Max(0.0f, _biome.Humidity - 0.1f),
-                maxHumidity = Mathf.Min(1.0f, _biome.Humidity + 0.1f),
-                color = _biome.Color
-            }).ToArray());
-            using MeshBuffer meshBuffer = this.GetMeshBuffer();
+        private void SpawnChunks(Texture terrainMap, Vector2Int chunkCount)
+        {
+            using MeshBuffer meshBuffer = this.GetMeshBuffer(terrainMap);
+            using ComputeBuffer biomes = new ComputeBuffer(this.TerrainConfig.Biomes.Length, BufferedBiome.ByteSize);
+            biomes.SetData(this.TerrainConfig.Biomes.Select(_biome => new BufferedBiome(_biome)).ToArray());
+            Vector2 baseOffset = this.chunkDimensions;
 
-            for (int x = 0; x < this.chunkCount.x; x++)
+            for (int x = 0; x < chunkCount.x; x++)
             {
-                for (int y = 0; y < this.chunkCount.y; y++)
+                for (int y = 0; y < chunkCount.y; y++)
                 {
-                    Vector2 noiseOffset = new Vector2(x * this.chunkDimensions.x - x, y * this.chunkDimensions.y - y);
-                    Vector3 positionOffset = new Vector3(noiseOffset.x, 0, noiseOffset.y);
+                    Vector3 offset = new Vector3(baseOffset.x * x - x, 0, baseOffset.y * y - y);
+                    this.GenerateMesh(biomes, meshBuffer, new Vector2(offset.x, offset.z));
+                    meshBuffer.UpdateArrays();
 
-                    MeshRenderer target = GameObject.Instantiate(this.chunkPrefab, positionOffset, Quaternion.identity);
-                    target.name = $"Chunk_{x}-{y}";
-
-                    this.GenerateTerrainMap(noiseOffset, this.seed, octaves, meshBuffer);
-                    target.GetComponent<MeshFilter>().mesh = this.GenerateMesh(biomes, meshBuffer);
-
-                    target.transform.SetParent(this.transform);
+                    this.InstantiateChunk(offset, meshBuffer);
                 }
             }
         }
 
-        private void GenerateTerrainMap(Vector2 offset, int seed, ComputeBuffer octaves, MeshBuffer meshBuffer)
+        private void InstantiateChunk(Vector3 offset, MeshBuffer meshBuffer)
         {
-            RenderTexture terrainMap = meshBuffer.TerrainMap;
-
-            this.terrainMapShader.SetTexture(0, "terrainMap", terrainMap);
-            this.terrainMapShader.SetInt("seed", this.seed);
-            this.terrainMapShader.SetInt("octaveCount", this.octaves.Length);
-            this.terrainMapShader.SetBuffer(0, "octaves", octaves);
-            this.terrainMapShader.SetInt("dimensions", terrainMap.width);
-            this.terrainMapShader.SetFloats("offset", offset.x, offset.y);
-
-            this.terrainMapShader.Dispatch(0, terrainMap.width / 8, terrainMap.height / 8, 1);
+            MeshFilter filter = GameObject.Instantiate(this.chunkPrefab, offset, Quaternion.identity, this.transform);
+            filter.gameObject.name = $"Chunk ({offset.x},{offset.z})";
+            Mesh mesh = filter.sharedMesh = new Mesh()
+            {
+                vertices = meshBuffer.VertexArray,
+                triangles = meshBuffer.TriangleArray,
+                colors = meshBuffer.ColorArray
+            };
+            mesh.RecalculateNormals();
         }
 
-        private Mesh GenerateMesh(ComputeBuffer biomes, MeshBuffer buffer)
+        private void UpdateTerrainMap(Texture map, Vector2Int resolution, System.Random rng)
+        {
+            this.terrainMapShader.SetFloat("persistance", this.terrainConfig.HeightMap.Persistance);
+            this.terrainMapShader.SetFloat("lacunarity", this.terrainConfig.HeightMap.Lacunarity);
+            this.terrainMapShader.SetInts("resolution", resolution.x, resolution.y);
+            this.terrainMapShader.SetFloats("offset", (float)rng.NextDouble() * 50000, (float)rng.NextDouble() * 50000);
+            this.terrainMapShader.SetInt("octaves", this.terrainConfig.HeightMap.Octaves);
+            this.terrainMapShader.SetFloat("scale", 1000.0f / this.terrainConfig.HeightMap.Scale);
+            this.terrainMapShader.SetTexture(0, "terrainMap", map);
+
+            this.terrainMapShader.Dispatch(0, resolution.x / 8, resolution.y / 8, 1);
+        }
+
+        private Mesh GenerateMesh(ComputeBuffer biomes, MeshBuffer buffer, Vector2 offset)
         {
             this.meshGenrationShader.SetInts("dimensions", new int[] { this.chunkDimensions.x, this.chunkDimensions.y });
+            this.meshGenrationShader.SetInt("biomeCount", drawTerrainMap ? 0 : biomes.count);
             this.meshGenrationShader.SetTexture(0, "terrainMap", buffer.TerrainMap);
             this.meshGenrationShader.SetBuffer(0, "triangles", buffer.Triangles);
             this.meshGenrationShader.SetBuffer(0, "vertices", buffer.Vertices);
+            this.meshGenrationShader.SetFloats("offset", offset.x, offset.y);
             this.meshGenrationShader.SetBuffer(0, "colors", buffer.Colors);
-            this.meshGenrationShader.SetFloat("scale", this.scale);
-            this.meshGenrationShader.SetInt("biomeCount", this.biomeConfig.Biomes.Length);
             this.meshGenrationShader.SetBuffer(0, "biomes", biomes);
+            this.meshGenrationShader.SetFloat("scale", this.scale);
 
             this.meshGenrationShader.Dispatch(0, this.chunkDimensions.x / 8, this.chunkDimensions.y / 8, 1);
 
@@ -117,12 +147,8 @@ namespace ProjectAldea.Scripts
             return mesh;
         }
 
-        private MeshBuffer GetMeshBuffer()
+        private MeshBuffer GetMeshBuffer(Texture terrainMap)
         {
-            RenderTexture terrainMap = new RenderTexture(this.chunkDimensions.x, this.chunkDimensions.y, 24);
-            terrainMap.enableRandomWrite = true;
-            terrainMap.Create();
-
             Vector3[] verts = new Vector3[this.chunkDimensions.x * this.chunkDimensions.y];
             int[] tris = new int[6 * (this.chunkDimensions.x) * (this.chunkDimensions.y)];
             Color[] col = new Color[verts.Length];
@@ -146,7 +172,7 @@ namespace ProjectAldea.Scripts
             public ComputeBuffer Vertices { get; set; }
             public ComputeBuffer Colors { get; set; }
 
-            public RenderTexture TerrainMap { get; set; }
+            public Texture TerrainMap { get; set; }
 
             public Vector3[] VertexArray { get; set; }
             public int[] TriangleArray { get; set; }
@@ -167,22 +193,37 @@ namespace ProjectAldea.Scripts
             }
         }
 
-        private struct B
+        private struct BufferedBiome
         {
+            public BufferedBiome(Biome biome)
+            {
+                this.minTemperature = biome.MinTemperature;
+                this.maxTemperature = biome.MaxTemperature;
+                this.minHumidity = biome.MinHumidity;
+                this.maxHumidity = biome.MaxHumidity;
+                this.minHeight = biome.MinHeight;
+                this.maxHeight = biome.MaxHeight;
+                this.color = biome.Color;
+            }
+
             public float minTemperature;
             public float maxTemperature;
             public float minHumidity;
             public float maxHumidity;
+            public float minHeight;
+            public float maxHeight;
             public Color color;
+
+            public const int ByteSize = 10 * sizeof(float);
         }
 
-        public BiomeConfig BiomeConfig { get => this.biomeConfig; }
+        public TerrainGeneratorConfig TerrainConfig { get => this.terrainConfig; }
 
         public void ReloadBiomeConfig(bool force = false)
         {
-            if (this.biomeConfig is null || force)
+            if (this.terrainConfig is null || force)
             {
-                IOptional<BiomeConfig> config = ConfigImporter.LoadBiomeConfig();
+                IOptional<TerrainGeneratorConfig> config = ConfigLoader.LoadBiomeConfig();
                 if (config.HasMessage)
                 {
                     Debug.LogError(config.Message);
@@ -190,7 +231,7 @@ namespace ProjectAldea.Scripts
                 }
                 else
                 {
-                    this.biomeConfig = config.Value;
+                    this.terrainConfig = config.Value;
                 }
             }
         }

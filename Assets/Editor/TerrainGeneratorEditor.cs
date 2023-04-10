@@ -15,15 +15,24 @@ public class TerrainGeneratorEditor : Editor
         {
             (this.target as TerrainGenerator).Generate();
         }
-        if(GUILayout.Button("Reload Biomes"))
+        if (GUILayout.Button("Regenerate"))
+        {
+            (this.target as TerrainGenerator).Regenerate();
+        }
+        GUILayout.EndHorizontal();
+
+        GUILayout.BeginHorizontal();
+        if(GUILayout.Button("Reload Config"))
         {
             (this.target as TerrainGenerator).ReloadBiomeConfig(true);
         }
-        if (GUILayout.Button("Save Biomes"))
+        if (GUILayout.Button("Save Config"))
         {
-            ConfigSaver.SaveBiomeConfig((this.target as TerrainGenerator).BiomeConfig);
+            ConfigSaver.SaveBiomeConfig((this.target as TerrainGenerator).TerrainConfig);
             (this.target as TerrainGenerator).ReloadBiomeConfig(true);
         }
         GUILayout.EndHorizontal();
+
+        this.serializedObject.ApplyModifiedProperties();
     }
 }

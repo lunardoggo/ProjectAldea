@@ -1,74 +1,101 @@
-#pragma kernel CSMain
+#pragma kernel CSTerrainMap
 
-struct Octave
-{
-    float scale;
-    float weight;
-    float power;
-};
+
 
 // Output
 RWTexture2D<float4> terrainMap;
 
 // Input
-RWStructuredBuffer<Octave> octaves;
-int octaveCount;
-uint dimensions;
+float persistance;
+float lacunarity;
+uint2 resolution;
 float2 offset;
-uint seed;
+uint octaves;
+float scale;
 
-float noise(float2 position, float norm, float2 offset);
+float positionFalloff(float2 position, float falloffRadius, float falloff);
+float temperature(float2 position, float elevation);
+float humidity(float2 position, float elevation);
+float height(float2 position);
 float snoise01(float2 v);
 
 [numthreads(8, 8, 1)]
-void CSMain(uint3 id : SV_DispatchThreadID)
+void CSTerrainMap(uint3 id : SV_DispatchThreadID)
 {
     //TerrainMap
-    float norm = 1;
-    /*for (int i = 0; i < octaveCount; i++)
-    {
-        //norm += pow(octaves[i].weight, octaves[i].power * octaves[i].power * octaves[i].power * octaves[i].power);
-        norm += pow(abs(octaves[i].weight), octaves[i].power) /** 1/octaves[i].scale*/;
-        //norm += octaves[i].weight;
-    //}
-    float height = noise(id.xy, norm, offset);
+    float h = height(id.xy / scale) * positionFalloff(id.xy, resolution.x * 0.45, 64);
 
     //Biome map
-    float temperature = 0;
-    float humidity = 0;
-
-    if(height < 0.1)
-    {
-        temperature = 1;
-        humidity = 1;
-    }
-    else if(height > 0.95)
-    {
-        temperature = 0;
-        humidity = 1;
-    }
-    else if(height > 0.7)
-    {
-        temperature = 0;
-        humidity = 0;
-    }
-    else
-    {
-        temperature = noise(id.xy, 1, float2(seed, seed) * 1.0525 + offset);
-        humidity = noise(id.xy, 1, float2(seed, seed) * 1.0463+ offset);
-    }
-
-    terrainMap[id.xy] = float4(height, temperature, humidity, 0);
+    float temp = temperature(id.xy, h);
+    float hum = humidity(id.xy, h);
+    
+    terrainMap[id.xy] = float4(h, temp, hum, 0); //float4(temp, 0, 0, 0);// float4(h, temp, humidity, 0);
 }
 
-float noise(float2 position, float norm, float2 offset)
+float height(float2 position)
 {
+    float frequency = 1;
+    float amplitude = 1;
     float height = 0;
-    for (int i = 0; i < octaveCount; i++)
+    float norm = 0;
+    
+    for(uint i = 0; i < octaves; i++)
     {
-        height += pow(abs(snoise01(float2(seed, seed) + (offset + position) / dimensions * octaves[i].scale)), octaves[i].power) * octaves[i].weight;
+        height += snoise01((offset + position) * frequency) * amplitude;
+        norm += amplitude;
+
+        amplitude *= persistance;
+        frequency *= lacunarity;
     }
-    return clamp(height / norm, 0, 1);
+    return height / norm;
+}
+
+float positionFalloff(float2 position, float falloffRadius, float falloff)
+{
+    float2 center = resolution / 2.0;
+    float2 offset = position - center;
+    float h = 1;
+
+    float distance = sqrt(pow(offset.x, 2) + pow(offset.y, 2));
+
+    if(distance > falloffRadius)
+    {
+        float diff = distance - falloffRadius;
+        h = lerp(0, 1, max(0, falloff - diff) / falloff);
+    }
+
+    return h;
+
+    /*float h = 1;
+    if(position.y < falloffSize || position.y > resolution.y - falloffSize)
+    {
+        float val = min(position.y, resolution.y - position.y) / falloffSize;
+        h *= lerp(0, 1, val);
+    }
+    if(position.x < falloffSize || position.x > resolution.x - falloffSize)
+    {
+        float val = min(position.x, resolution.x - position.x) / falloffSize;
+        h *= lerp(0, 1, val);
+    }
+    return h;*/
+}
+
+float temperature(float2 position, float elevation)
+{
+    //Colder temperatures on the north and south edges of the map as well as on higher elevations
+    float tropicThreshold = 1;//resolution.y * 0.3;
+    float multiplier = 1;
+    if(position.y < tropicThreshold || position.y > resolution.y - tropicThreshold)
+    {
+        float val = min(position.y, resolution.y - position.y) / tropicThreshold;
+        multiplier = lerp(0, 1, val);
+    }
+    return multiplier * (1 - elevation) * snoise01((offset / 200.0 + position) / (scale * 1.25));
+}
+
+float humidity(float2 position, float elevation)
+{
+    return (1 - elevation) * snoise01((offset * 3 + position) / (scale * 0.75));
 }
 
 // Copied from GitHub https://gist.github.com/dario-zubovic/e8c4b1f6619b69ba2090123a6e1c2584
