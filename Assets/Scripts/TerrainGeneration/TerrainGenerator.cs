@@ -106,6 +106,12 @@ namespace ProjectAldea.Scripts
                 colors = meshBuffer.ColorArray
             };
             mesh.RecalculateNormals();
+
+            MeshCollider collider = filter.GetComponent<MeshCollider>();
+            if(collider != null)
+            {
+                collider.sharedMesh = mesh;
+            }
         }
 
         private void UpdateTerrainMap(Texture map, Vector2Int resolution, System.Random rng)

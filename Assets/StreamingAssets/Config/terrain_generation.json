@@ -7,6 +7,16 @@
   },
   "biomes": [
     {
+      "color": "#DFDFDF",
+      "minTemperature": 0.0,
+      "maxTemperature": 1.0,
+      "maxHeight": 1.0,
+      "minHeight": 0.8,
+      "minHumidity": 0.0,
+      "maxHumidity": 1.0,
+      "name": "snowy_peaks"
+    },
+    {
       "color": "#352C2C",
       "minTemperature": 0.0,
       "maxTemperature": 1.0,
@@ -15,16 +25,6 @@
       "minHumidity": 0.0,
       "maxHumidity": 1.0,
       "name": "mountains"
-    },
-    {
-      "color": "#D0D0D0",
-      "minTemperature": 0.0,
-      "maxTemperature": 1.0,
-      "maxHeight": 1.0,
-      "minHeight": 0.9,
-      "minHumidity": 0.0,
-      "maxHumidity": 1.0,
-      "name": "snowy_peaks"
     },
     {
       "color": "#2A9D1C",
@@ -138,8 +138,8 @@
     }
   ],
   "mountainBiomes": [
-    "mountains",
-    "snowy_peaks"
+    "snowy_peaks",
+    "mountains"
   ],
   "waterBodyBiomes": [
     "ocean",

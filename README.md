@@ -6,5 +6,6 @@ Some stuff I'm currently experimenting with:
   * Unity DOTS and ECS for simulating RTS units
   * Modding system that allows for assets to be loaded from the disk at runtime (for example for faction info)
   * I18N system for translating UI at runtime
+  * AI Scripting using a custom DSL
 
 The project's code is licensed under the MIT license.

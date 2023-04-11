@@ -1,7 +1,5 @@
 #pragma kernel CSTerrainMap
 
-
-
 // Output
 RWTexture2D<float4> terrainMap;
 
@@ -23,7 +21,7 @@ float snoise01(float2 v);
 void CSTerrainMap(uint3 id : SV_DispatchThreadID)
 {
     //TerrainMap
-    float h = height(id.xy / scale) * positionFalloff(id.xy, resolution.x * 0.45, 64);
+    float h = height(id.xy / scale) * positionFalloff(id.xy, resolution.x * 0.4, 64);
 
     //Biome map
     float temp = temperature(id.xy, h);
