@@ -11,6 +11,14 @@ struct Biome
     float4 color;
 };
 
+//modes: Default = 1, HeightMap = 2, Temperature = 3, Percipitation = 4, ResourceDistribution = 5
+#define MapMode_Default         1
+#define MapMode_HeightMap       2
+#define MapMode_Temperature     3
+#define MapMode_Percipitation   4
+#define MapMode_Resources       5
+//TODO: implement map modes using textures instead of vertex colors
+
 RWStructuredBuffer<float3> vertices;
 RWStructuredBuffer<float4> colors;
 RWStructuredBuffer<int> triangles;
@@ -19,6 +27,7 @@ RWTexture2D<float4> terrainMap;
 uint2 dimensions;
 uint biomeCount;
 float2 offset;
+uint mapMode;
 float scale;
 
 [numthreads(8,8,1)]
@@ -44,7 +53,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         triangles[index + 5] = vert + dimensions.x + 1;
     }
 
-    if(biomeCount > 0)
+    if(mapMode == MapMode_Default)
     {
         float elevation = terrainMap[pos].x;
         float temperature = terrainMap[pos].y;
@@ -63,8 +72,21 @@ void CSMain (uint3 id : SV_DispatchThreadID)
              }
         }
     }
-    else
+    else if(mapMode == MapMode_HeightMap)
     {
-        colors[vert] = float4(terrainMap[id.xy + offset].y, 0, terrainMap[id.xy + offset].z, 0);
+        colors[vert] = pow(terrainMap[id.xy + offset].x, 2);
+    }
+    else if(mapMode == MapMode_Temperature)
+    {
+        colors[vert] = float4(terrainMap[id.xy + offset].y, 0, 1 - 4 * terrainMap[id.xy + offset].y, 0);
+    }
+    else if(mapMode == MapMode_Percipitation)
+    {
+        float percipitation = terrainMap[id.xy + offset].z;
+        colors[vert] = float4(1 - 2.25 * percipitation, 1 - 2.25 * percipitation, percipitation, 0);
+    }
+    else if(mapMode == MapMode_Resources)
+    {
+        //TODO, but maybe after switching to textures
     }
 }

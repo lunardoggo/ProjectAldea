@@ -1,13 +1,26 @@
+using System.Collections.Generic;
 using ProjectAldea.Scripts;
 using ProjectAldea.Config;
 using UnityEngine;
 using UnityEditor;
+using System.Linq;
+using System;
 
 [CustomEditor(typeof(TerrainGenerator))]
 public class TerrainGeneratorEditor : Editor
 {
+    private static readonly List<MapViewMode> mapModes = Enum.GetValues(typeof(MapViewMode)).Cast<MapViewMode>().ToList();
+
     public override void OnInspectorGUI()
     {
+        TerrainGenerator generator = this.target as TerrainGenerator;
+
+        int selected = EditorGUILayout.Popup("Map modes", mapModes.IndexOf(generator.MapMode), mapModes.Select(_option => _option.ToString()).ToArray());
+        if (selected >= 0 && generator.MapMode != mapModes[selected])
+        {
+            generator.MapMode = mapModes[selected];
+        }
+
         base.OnInspectorGUI();
 
         GUILayout.BeginHorizontal();
@@ -22,7 +35,7 @@ public class TerrainGeneratorEditor : Editor
         GUILayout.EndHorizontal();
 
         GUILayout.BeginHorizontal();
-        if(GUILayout.Button("Reload Config"))
+        if (GUILayout.Button("Reload Config"))
         {
             (this.target as TerrainGenerator).ReloadBiomeConfig(true);
         }
@@ -34,5 +47,6 @@ public class TerrainGeneratorEditor : Editor
         GUILayout.EndHorizontal();
 
         this.serializedObject.ApplyModifiedProperties();
+        this.serializedObject.Update();
     }
 }

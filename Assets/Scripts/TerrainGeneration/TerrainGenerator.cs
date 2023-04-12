@@ -1,4 +1,3 @@
-using ProjectAldea.Scripts.TerrainGeneration;
 using ProjectAldea.Config;
 using UnityEngine;
 using System.Linq;
@@ -10,8 +9,6 @@ namespace ProjectAldea.Scripts
     {
         [SerializeField]
         private GameObject debugTarget;
-        [SerializeField]
-        private bool drawTerrainMap;
 
         [SerializeField]
         private ComputeShader meshGenrationShader;
@@ -31,6 +28,8 @@ namespace ProjectAldea.Scripts
 
         [SerializeField]
         private TerrainGeneratorConfig terrainConfig;
+
+        private MapViewMode mapMode = MapViewMode.Default;
 
         private void OnValidate()
         {
@@ -65,13 +64,13 @@ namespace ProjectAldea.Scripts
 
         private void ClearChunks()
         {
-            for(int i = this.transform.childCount - 1; i >= 0; i--)
+            for (int i = this.transform.childCount - 1; i >= 0; i--)
             {
-                #if UNITY_EDITOR
-                    GameObject.DestroyImmediate(this.transform.GetChild(i).gameObject, true);
-                #else
+#if UNITY_EDITOR
+                GameObject.DestroyImmediate(this.transform.GetChild(i).gameObject, true);
+#else
                     GameObject.Destroy(this.transform.GetChild(i).gameObject);
-                #endif
+#endif
             }
         }
 
@@ -108,7 +107,7 @@ namespace ProjectAldea.Scripts
             mesh.RecalculateNormals();
 
             MeshCollider collider = filter.GetComponent<MeshCollider>();
-            if(collider != null)
+            if (collider != null)
             {
                 collider.sharedMesh = mesh;
             }
@@ -130,14 +129,17 @@ namespace ProjectAldea.Scripts
         private Mesh GenerateMesh(ComputeBuffer biomes, MeshBuffer buffer, Vector2 offset)
         {
             this.meshGenrationShader.SetInts("dimensions", new int[] { this.chunkDimensions.x, this.chunkDimensions.y });
-            this.meshGenrationShader.SetInt("biomeCount", drawTerrainMap ? 0 : biomes.count);
+            this.meshGenrationShader.SetInt("biomeCount", biomes.count);
             this.meshGenrationShader.SetTexture(0, "terrainMap", buffer.TerrainMap);
             this.meshGenrationShader.SetBuffer(0, "triangles", buffer.Triangles);
             this.meshGenrationShader.SetBuffer(0, "vertices", buffer.Vertices);
             this.meshGenrationShader.SetFloats("offset", offset.x, offset.y);
             this.meshGenrationShader.SetBuffer(0, "colors", buffer.Colors);
+            this.meshGenrationShader.SetInt("mapMode", (int)this.mapMode);
             this.meshGenrationShader.SetBuffer(0, "biomes", biomes);
             this.meshGenrationShader.SetFloat("scale", this.scale);
+
+            Debug.Log((int)this.mapMode);
 
             this.meshGenrationShader.Dispatch(0, this.chunkDimensions.x / 8, this.chunkDimensions.y / 8, 1);
 
@@ -170,6 +172,38 @@ namespace ProjectAldea.Scripts
                 VertexArray = verts,
                 ColorArray = col
             };
+        }
+
+        public MapViewMode MapMode
+        {
+            get => this.mapMode;
+            set
+            {
+                this.mapMode = value;
+                if (Application.isPlaying)
+                {
+                    this.Regenerate();
+                }
+            }
+        }
+
+        public TerrainGeneratorConfig TerrainConfig { get => this.terrainConfig; }
+
+        public void ReloadBiomeConfig(bool force = false)
+        {
+            if (this.terrainConfig is null || force)
+            {
+                IOptional<TerrainGeneratorConfig> config = ConfigLoader.LoadBiomeConfig();
+                if (config.HasMessage)
+                {
+                    Debug.LogError(config.Message);
+                    Debug.LogError(config.VerboseMessage ?? "No Verbose Message");
+                }
+                else
+                {
+                    this.terrainConfig = config.Value;
+                }
+            }
         }
 
         private class MeshBuffer : IDisposable
@@ -223,23 +257,6 @@ namespace ProjectAldea.Scripts
             public const int ByteSize = 10 * sizeof(float);
         }
 
-        public TerrainGeneratorConfig TerrainConfig { get => this.terrainConfig; }
 
-        public void ReloadBiomeConfig(bool force = false)
-        {
-            if (this.terrainConfig is null || force)
-            {
-                IOptional<TerrainGeneratorConfig> config = ConfigLoader.LoadBiomeConfig();
-                if (config.HasMessage)
-                {
-                    Debug.LogError(config.Message);
-                    Debug.LogError(config.VerboseMessage ?? "No Verbose Message");
-                }
-                else
-                {
-                    this.terrainConfig = config.Value;
-                }
-            }
-        }
     }
 }
