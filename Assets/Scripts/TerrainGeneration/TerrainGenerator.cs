@@ -139,8 +139,6 @@ namespace ProjectAldea.Scripts
             this.meshGenrationShader.SetBuffer(0, "biomes", biomes);
             this.meshGenrationShader.SetFloat("scale", this.scale);
 
-            Debug.Log((int)this.mapMode);
-
             this.meshGenrationShader.Dispatch(0, this.chunkDimensions.x / 8, this.chunkDimensions.y / 8, 1);
 
             buffer.UpdateArrays();

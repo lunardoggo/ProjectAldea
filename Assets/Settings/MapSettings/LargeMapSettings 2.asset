@@ -14,3 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Large
   mapSize: {x: 2048, y: 2048}
+  minRiverCount: 40
+  riverCarvingTrys: 100

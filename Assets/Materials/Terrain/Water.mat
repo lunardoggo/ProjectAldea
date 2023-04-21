@@ -8,7 +8,8 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Water
-  m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: 300cb03f47eebc344b2f2905c2d11cb0,
+    type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -17,8 +18,7 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap:
-    RenderType: Opaque
+  stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
   m_SavedProperties:
@@ -96,27 +96,39 @@ Material:
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
+    - _FoamWidth: 0.2
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
     - _Metallic: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.005
+    - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
+    - _RippleScale: 1000
+    - _RippleSpeed: 1
+    - _RippleWidth: 0.5
+    - _Scale: 0.0025
+    - _ScrollSpeed: 0.01
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
     - _Surface: 0
+    - _WaveScale: 0.1
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:
+    - _Albedo: {r: 0, g: 0.6616406, b: 1, a: 0}
     - _BaseColor: {r: 0.20156877, g: 0.4370618, b: 0.8229651, a: 1}
     - _Color: {r: 0.20156872, g: 0.43706176, b: 0.8229651, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _FoamColor: {r: 0.6933962, g: 0.9016337, b: 1, a: 0}
+    - _RippleColor: {r: 0.5760733, g: 2.713945, b: 2.529381, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _WaterColor: {r: 0, g: 0.6382828, b: 1, a: 0}
   m_BuildTextureStacks: []
 --- !u!114 &2081214555028560719
 MonoBehaviour:
