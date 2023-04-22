@@ -1,3 +1,4 @@
+using LunarDoggo.Optionals;
 using ProjectAldea.Config;
 using UnityEngine;
 using System.Linq;
@@ -195,7 +196,10 @@ namespace ProjectAldea.Scripts
                 if (config.HasMessage)
                 {
                     Debug.LogError(config.Message);
-                    Debug.LogError(config.VerboseMessage ?? "No Verbose Message");
+                    if(config.HasException)
+                    { 
+                        Debug.LogError(config.Exception.ToString());
+                    }
                 }
                 else
                 {

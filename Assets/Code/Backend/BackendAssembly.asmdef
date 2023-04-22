@@ -7,7 +7,8 @@
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "Newtonsoft.Json.dll"
+        "Newtonsoft.Json.dll",
+        "LunarDoggo.Optionals.dll"
     ],
     "autoReferenced": true,
     "defineConstraints": [],
